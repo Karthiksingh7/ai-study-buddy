@@ -9,7 +9,9 @@ import {
   LogOut,
   Menu,
   X,
-  GraduationCap
+  GraduationCap,
+  Brain,
+  User
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -27,8 +29,10 @@ const navItems: NavItem[] = [
   { title: "AI Chat", icon: MessageSquare, path: "/chat", description: "Text-based tutor" },
   { title: "Voice Buddy", icon: Mic, path: "/voice", description: "Hands-free assistant" },
   { title: "Smart Scan", icon: Camera, path: "/scan", description: "Capture & explain" },
+  { title: "AI Quiz", icon: Brain, path: "/quiz", description: "Test your knowledge" },
   { title: "Flashcards", icon: Sparkles, path: "/flashcards", description: "AI-generated cards" },
   { title: "Study Sessions", icon: BookOpen, path: "/sessions", description: "Track progress" },
+  { title: "My Profile", icon: User, path: "/profile", description: "Learning profile" },
 ];
 
 export function AppSidebar() {

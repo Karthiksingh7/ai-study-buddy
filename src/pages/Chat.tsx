@@ -19,6 +19,7 @@ export default function Chat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [studiedTopics, setStudiedTopics] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
 
@@ -30,12 +31,52 @@ export default function Chat() {
     scrollToBottom();
   }, [messages]);
 
-  // Load chat history
+  // Load chat history and studied topics
   useEffect(() => {
     if (user) {
       loadChatHistory();
+      loadStudiedTopics();
     }
   }, [user]);
+
+  const loadStudiedTopics = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("studied_topics")
+      .select("topic")
+      .eq("user_id", user.id)
+      .order("last_studied_at", { ascending: false })
+      .limit(15);
+    
+    if (data) {
+      setStudiedTopics(data.map(t => t.topic));
+    }
+  };
+
+  const trackTopic = async (topic: string) => {
+    if (!user || !topic.trim()) return;
+
+    const { data: existing } = await supabase
+      .from("studied_topics")
+      .select("id, study_count")
+      .eq("user_id", user.id)
+      .eq("topic", topic)
+      .single();
+
+    if (existing) {
+      await supabase
+        .from("studied_topics")
+        .update({ 
+          study_count: existing.study_count + 1,
+          last_studied_at: new Date().toISOString()
+        })
+        .eq("id", existing.id);
+    } else {
+      await supabase
+        .from("studied_topics")
+        .insert({ user_id: user.id, topic, source: "chat" });
+    }
+  };
 
   const loadChatHistory = async () => {
     const { data, error } = await supabase
@@ -76,6 +117,16 @@ export default function Chat() {
     // Save user message
     await saveMessage("user", userMessage.content);
 
+    // Extract and track topic from the user's question
+    const words = userMessage.content.split(" ");
+    if (words.length >= 2) {
+      // Simple topic extraction - take key words
+      const potentialTopic = words.slice(0, 4).join(" ").replace(/[?!.,]/g, "");
+      if (potentialTopic.length > 5) {
+        trackTopic(potentialTopic);
+      }
+    }
+
     try {
       const response = await fetch(CHAT_URL, {
         method: "POST",
@@ -89,6 +140,7 @@ export default function Chat() {
             content: m.content,
           })),
           type: "chat",
+          studiedTopics,
         }),
       });
 
