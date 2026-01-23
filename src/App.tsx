@@ -12,6 +12,8 @@ import Voice from "./pages/Voice";
 import Scan from "./pages/Scan";
 import Flashcards from "./pages/Flashcards";
 import Sessions from "./pages/Sessions";
+import Quiz from "./pages/Quiz";
+import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -51,6 +53,14 @@ const App = () => (
               }
             />
             <Route
+              path="/quiz"
+              element={
+                <DashboardLayout>
+                  <Quiz />
+                </DashboardLayout>
+              }
+            />
+            <Route
               path="/flashcards"
               element={
                 <DashboardLayout>
@@ -63,6 +73,14 @@ const App = () => (
               element={
                 <DashboardLayout>
                   <Sessions />
+                </DashboardLayout>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <DashboardLayout>
+                  <Profile />
                 </DashboardLayout>
               }
             />

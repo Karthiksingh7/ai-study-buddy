@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, type = "chat", imageData } = await req.json();
+    const { messages, type = "chat", imageData, topic, difficulty, questionCount, studiedTopics } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
@@ -22,6 +22,12 @@ serve(async (req) => {
     let userMessages = messages;
 
     if (type === "chat") {
+      let topicsContext = "";
+      if (studiedTopics && studiedTopics.length > 0) {
+        topicsContext = `\n\nThe student has previously studied these topics: ${studiedTopics.join(", ")}. 
+You can reference their prior learning when relevant and suggest connections between topics.`;
+      }
+      
       systemPrompt = `You are StudyBuddy AI, a friendly and knowledgeable study companion for students. 
 You help with:
 - Explaining complex concepts in simple terms
@@ -29,7 +35,7 @@ You help with:
 - Providing study tips and strategies
 - Answering homework questions with explanations
 - Encouraging and motivating students
-
+${topicsContext}
 Be warm, supportive, and educational. Use examples when helpful. Keep responses concise but thorough.`;
     } else if (type === "image_explain") {
       systemPrompt = `You are an expert at analyzing images of notes, textbook pages, problems, and educational content.
@@ -59,6 +65,46 @@ Return your response as a JSON array with this exact format:
 
 Make questions clear and specific. Make answers concise but complete.
 Only return the JSON array, no other text.`;
+    } else if (type === "quiz") {
+      const difficultyDescriptions = {
+        easy: "basic understanding, definitions, and simple recall questions",
+        intermediate: "application of concepts, connections between ideas, and moderate problem-solving",
+        hard: "complex analysis, synthesis of multiple concepts, and challenging problem-solving"
+      };
+      
+      const diffDesc = difficultyDescriptions[difficulty as keyof typeof difficultyDescriptions] || difficultyDescriptions.intermediate;
+      const count = questionCount || 5;
+      
+      systemPrompt = `You are an expert quiz creator. Generate exactly ${count} multiple-choice quiz questions about "${topic}" at the ${difficulty} difficulty level.
+
+Difficulty description: ${diffDesc}
+
+Return your response as a JSON array with this exact format:
+[{
+  "question": "The question text",
+  "options": ["Option A", "Option B", "Option C", "Option D"],
+  "correctIndex": 0,
+  "explanation": "Brief explanation of why this answer is correct"
+}]
+
+Make sure:
+- Each question has exactly 4 options
+- correctIndex is 0-3 indicating which option is correct
+- Questions are appropriate for the ${difficulty} level
+- Include a helpful explanation for learning
+
+Only return the JSON array, no other text.`;
+      
+      userMessages = [{ role: "user", content: `Generate ${count} ${difficulty} level quiz questions about: ${topic}` }];
+    } else if (type === "extract_topic") {
+      systemPrompt = `You are a topic extraction assistant. Analyze the conversation and extract the main educational topic being discussed.
+Return ONLY a JSON object with this format:
+{"topic": "the main topic", "subtopics": ["subtopic1", "subtopic2"]}
+
+If no clear educational topic is found, return:
+{"topic": null, "subtopics": []}
+
+Only return the JSON, no other text.`;
     }
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {

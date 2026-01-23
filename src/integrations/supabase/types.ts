@@ -68,6 +68,81 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string
+          display_name: string | null
+          flashcards_created: number | null
+          id: string
+          quizzes_completed: number | null
+          total_study_time: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name?: string | null
+          flashcards_created?: number | null
+          id?: string
+          quizzes_completed?: number | null
+          total_study_time?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name?: string | null
+          flashcards_created?: number | null
+          id?: string
+          quizzes_completed?: number | null
+          total_study_time?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      quiz_results: {
+        Row: {
+          correct_answers: number
+          created_at: string
+          difficulty: string
+          id: string
+          score_percentage: number
+          time_taken_seconds: number | null
+          topic: string
+          total_questions: number
+          user_id: string
+        }
+        Insert: {
+          correct_answers: number
+          created_at?: string
+          difficulty: string
+          id?: string
+          score_percentage: number
+          time_taken_seconds?: number | null
+          topic: string
+          total_questions: number
+          user_id: string
+        }
+        Update: {
+          correct_answers?: number
+          created_at?: string
+          difficulty?: string
+          id?: string
+          score_percentage?: number
+          time_taken_seconds?: number | null
+          topic?: string
+          total_questions?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       scanned_notes: {
         Row: {
           ai_explanation: string | null
@@ -91,6 +166,36 @@ export type Database = {
           extracted_text?: string | null
           id?: string
           image_url?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      studied_topics: {
+        Row: {
+          created_at: string
+          id: string
+          last_studied_at: string
+          source: string | null
+          study_count: number | null
+          topic: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_studied_at?: string
+          source?: string | null
+          study_count?: number | null
+          topic: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_studied_at?: string
+          source?: string | null
+          study_count?: number | null
+          topic?: string
           user_id?: string
         }
         Relationships: []
