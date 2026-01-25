@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, type = "chat", imageData, topic, difficulty, questionCount, studiedTopics } = await req.json();
+    const { messages, type = "chat", imageData, topic, difficulty, questionCount, studiedTopics, context } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
@@ -20,8 +20,10 @@ serve(async (req) => {
 
     let systemPrompt = "";
     let userMessages = messages;
+    let shouldStream = false;
 
     if (type === "chat") {
+      shouldStream = true;
       let topicsContext = "";
       if (studiedTopics && studiedTopics.length > 0) {
         topicsContext = `\n\nThe student has previously studied these topics: ${studiedTopics.join(", ")}. 
@@ -37,6 +39,30 @@ You help with:
 - Encouraging and motivating students
 ${topicsContext}
 Be warm, supportive, and educational. Use examples when helpful. Keep responses concise but thorough.`;
+    } else if (type === "learn") {
+      shouldStream = true;
+      systemPrompt = `You are StudyBuddy AI, an expert educational assistant. When a student asks about a topic:
+
+1. Start with a clear, beginner-friendly explanation
+2. Build up to more complex aspects
+3. Use analogies and real-world examples
+4. Highlight key points they should remember
+5. Suggest what to learn next
+
+Keep your explanation focused and educational. Be encouraging and make learning enjoyable.`;
+    } else if (type === "community") {
+      shouldStream = false;
+      systemPrompt = `You are StudyBuddy AI, a helpful assistant in a student discussion group.
+${context ? `Context: ${context}` : ""}
+
+Your role:
+- Answer questions clearly and accurately
+- Correct any misinformation politely
+- Summarize discussions if asked
+- Highlight important points
+- Encourage collaborative learning
+
+Keep responses concise (2-3 paragraphs max). Be friendly and supportive.`;
     } else if (type === "image_explain") {
       systemPrompt = `You are an expert at analyzing images of notes, textbook pages, problems, and educational content.
 When given an image, you should:
@@ -119,7 +145,7 @@ Only return the JSON, no other text.`;
           { role: "system", content: systemPrompt },
           ...userMessages,
         ],
-        stream: type === "chat",
+        stream: shouldStream,
       }),
     });
 
@@ -144,7 +170,7 @@ Only return the JSON, no other text.`;
       });
     }
 
-    if (type === "chat") {
+    if (shouldStream) {
       return new Response(response.body, {
         headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
       });
