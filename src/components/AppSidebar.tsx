@@ -11,7 +11,10 @@ import {
   X,
   GraduationCap,
   Brain,
-  User
+  User,
+  Users,
+  Gamepad2,
+  Clock
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -27,11 +30,14 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { title: "AI Chat", icon: MessageSquare, path: "/chat", description: "Text-based tutor" },
+  { title: "Smart Learning", icon: BookOpen, path: "/learn", description: "Topic-centered learning" },
+  { title: "Community", icon: Users, path: "/community", description: "Study groups" },
   { title: "Voice Buddy", icon: Mic, path: "/voice", description: "Hands-free assistant" },
   { title: "Smart Scan", icon: Camera, path: "/scan", description: "Capture & explain" },
   { title: "AI Quiz", icon: Brain, path: "/quiz", description: "Test your knowledge" },
   { title: "Flashcards", icon: Sparkles, path: "/flashcards", description: "AI-generated cards" },
-  { title: "Study Sessions", icon: BookOpen, path: "/sessions", description: "Track progress" },
+  { title: "Smart Break", icon: Gamepad2, path: "/games", description: "Brain training" },
+  { title: "Sessions", icon: Clock, path: "/sessions", description: "Track progress" },
   { title: "My Profile", icon: User, path: "/profile", description: "Learning profile" },
 ];
 

@@ -14,6 +14,9 @@ import Flashcards from "./pages/Flashcards";
 import Sessions from "./pages/Sessions";
 import Quiz from "./pages/Quiz";
 import Profile from "./pages/Profile";
+import Community from "./pages/Community";
+import Learn from "./pages/Learn";
+import Games from "./pages/Games";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -33,6 +36,22 @@ const App = () => (
               element={
                 <DashboardLayout>
                   <Chat />
+                </DashboardLayout>
+              }
+            />
+            <Route
+              path="/learn"
+              element={
+                <DashboardLayout>
+                  <Learn />
+                </DashboardLayout>
+              }
+            />
+            <Route
+              path="/community"
+              element={
+                <DashboardLayout>
+                  <Community />
                 </DashboardLayout>
               }
             />
@@ -65,6 +84,14 @@ const App = () => (
               element={
                 <DashboardLayout>
                   <Flashcards />
+                </DashboardLayout>
+              }
+            />
+            <Route
+              path="/games"
+              element={
+                <DashboardLayout>
+                  <Games />
                 </DashboardLayout>
               }
             />
