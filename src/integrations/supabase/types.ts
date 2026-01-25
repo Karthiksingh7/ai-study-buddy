@@ -41,6 +41,84 @@ export type Database = {
         }
         Relationships: []
       }
+      discussion_groups: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          member_count: number | null
+          name: string
+          subject: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          member_count?: number | null
+          name: string
+          subject: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          member_count?: number | null
+          name?: string
+          subject?: string
+        }
+        Relationships: []
+      }
+      discussion_messages: {
+        Row: {
+          content: string
+          created_at: string
+          group_id: string
+          id: string
+          is_ai_response: boolean | null
+          reply_to: string | null
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          group_id: string
+          id?: string
+          is_ai_response?: boolean | null
+          reply_to?: string | null
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          group_id?: string
+          id?: string
+          is_ai_response?: boolean | null
+          reply_to?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discussion_messages_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "discussion_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discussion_messages_reply_to_fkey"
+            columns: ["reply_to"]
+            isOneToOne: false
+            referencedRelation: "discussion_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       flashcards: {
         Row: {
           answer: string
@@ -67,6 +145,65 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      game_sessions: {
+        Row: {
+          completed_at: string
+          duration_seconds: number | null
+          game_type: string
+          id: string
+          score: number | null
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string
+          duration_seconds?: number | null
+          game_type: string
+          id?: string
+          score?: number | null
+          user_id: string
+        }
+        Update: {
+          completed_at?: string
+          duration_seconds?: number | null
+          game_type?: string
+          id?: string
+          score?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      group_memberships: {
+        Row: {
+          group_id: string
+          id: string
+          joined_at: string
+          role: string | null
+          user_id: string
+        }
+        Insert: {
+          group_id: string
+          id?: string
+          joined_at?: string
+          role?: string | null
+          user_id: string
+        }
+        Update: {
+          group_id?: string
+          id?: string
+          joined_at?: string
+          role?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_memberships_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "discussion_groups"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -230,6 +367,77 @@ export type Database = {
           subject?: string | null
           title?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      user_video_history: {
+        Row: {
+          completed: boolean | null
+          id: string
+          user_id: string
+          video_id: string
+          watch_duration_seconds: number | null
+          watched_at: string
+        }
+        Insert: {
+          completed?: boolean | null
+          id?: string
+          user_id: string
+          video_id: string
+          watch_duration_seconds?: number | null
+          watched_at?: string
+        }
+        Update: {
+          completed?: boolean | null
+          id?: string
+          user_id?: string
+          video_id?: string
+          watch_duration_seconds?: number | null
+          watched_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_video_history_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "video_recommendations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      video_recommendations: {
+        Row: {
+          channel: string
+          created_at: string
+          description: string | null
+          duration: string | null
+          id: string
+          thumbnail_url: string | null
+          title: string
+          topic: string
+          video_id: string
+        }
+        Insert: {
+          channel: string
+          created_at?: string
+          description?: string | null
+          duration?: string | null
+          id?: string
+          thumbnail_url?: string | null
+          title: string
+          topic: string
+          video_id: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          description?: string | null
+          duration?: string | null
+          id?: string
+          thumbnail_url?: string | null
+          title?: string
+          topic?: string
+          video_id?: string
         }
         Relationships: []
       }
