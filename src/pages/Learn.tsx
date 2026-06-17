@@ -8,51 +8,31 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { 
-  Search, 
-  Sparkles, 
-  Play, 
-  Users, 
+import { FormattedMessage } from "@/components/FormattedMessage";
+import {
+  Search,
+  Sparkles,
+  Play,
+  Users,
   Brain,
   Loader2,
   ExternalLink,
-  Clock,
   BookOpen,
-  MessageSquare
+  MessageSquare,
+  Youtube,
+  GraduationCap,
+  ArrowRight
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { streamChatWithGemini, generateJSON } from "@/lib/gemini";
 
 interface VideoRecommendation {
-  id: string;
-  topic: string;
   title: string;
   channel: string;
-  video_id: string;
-  thumbnail_url: string;
+  searchQuery: string;
   description: string;
-  duration: string;
+  difficulty: "beginner" | "intermediate" | "advanced";
 }
-
-interface TopicSuggestion {
-  explanation: string;
-  videos: VideoRecommendation[];
-  relatedTopics: string[];
-}
-
-const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
-
-// Educational YouTube channels for curated recommendations
-const CURATED_CHANNELS = [
-  "3Blue1Brown",
-  "Khan Academy", 
-  "MIT OpenCourseWare",
-  "Computerphile",
-  "The Coding Train",
-  "freeCodeCamp",
-  "Traversy Media",
-  "Abdul Bari",
-  "mycodeschool"
-];
 
 export default function Learn() {
   const [searchTopic, setSearchTopic] = useState("");
@@ -62,6 +42,7 @@ export default function Learn() {
   const [relatedTopics, setRelatedTopics] = useState<string[]>([]);
   const [recentTopics, setRecentTopics] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState("ai");
+  const [isLoadingVideos, setIsLoadingVideos] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -91,91 +72,72 @@ export default function Learn() {
     setVideos([]);
     setRelatedTopics([]);
     setActiveTab("ai");
+    setIsLoadingVideos(true);
 
     try {
-      // Get AI explanation with streaming
-      const response = await fetch(CHAT_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-        },
-        body: JSON.stringify({
-          messages: [{ role: "user", content: topic }],
-          type: "learn",
-        }),
-      });
+      // Start AI explanation streaming
+      const explanationPromise = streamChatWithGemini(
+        [{
+          role: "user", content: `Explain the topic: "${topic}". Provide a clear, comprehensive explanation suitable for a student. Include:
+- A brief introduction
+- Key concepts with examples
+- Important formulas or rules (if applicable)
+- Real-world applications
+- Common mistakes to avoid
 
-      if (!response.ok) throw new Error("Failed to get explanation");
-
-      const reader = response.body!.getReader();
-      const decoder = new TextDecoder();
-      let fullContent = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split('\n');
-
-        for (const line of lines) {
-          if (line.startsWith('data: ') && line.trim() !== 'data: [DONE]') {
-            try {
-              const parsed = JSON.parse(line.slice(6));
-              const content = parsed.choices?.[0]?.delta?.content;
-              if (content) {
-                fullContent += content;
-                setAiExplanation(fullContent);
-              }
-            } catch {}
-          }
+Use markdown formatting with headers (##), bold, bullet points, code blocks where relevant, and tables if helpful.` }],
+        "You are an expert educator and tutor. Provide clear, well-structured, and engaging explanations of academic topics. Use rich markdown formatting to make the content visually appealing and easy to scan.",
+        (_chunk, fullText) => {
+          setAiExplanation(fullText);
         }
+      );
+
+      // Generate video recommendations in parallel using Gemini
+      const videoPromise = generateJSON<{
+        videos: { title: string; channel: string; searchQuery: string; description: string; difficulty: string }[];
+        relatedTopics: string[];
+      }>(
+        `For the topic "${topic}", suggest 5 real YouTube video recommendations that a student should watch.
+
+Return ONLY valid JSON (no markdown):
+{
+  "videos": [
+    {
+      "title": "Exact descriptive video title a student would search for",
+      "channel": "Well-known educational YouTube channel name",
+      "searchQuery": "exact YouTube search query to find this video",
+      "description": "Brief 1-line description of what the video covers",
+      "difficulty": "beginner"
+    }
+  ],
+  "relatedTopics": ["Topic 1", "Topic 2", "Topic 3", "Topic 4", "Topic 5"]
+}
+
+Rules:
+- Use REAL well-known educational channels: Khan Academy, 3Blue1Brown, MIT OpenCourseWare, freeCodeCamp, Traversy Media, Abdul Bari, mycodeschool, Computerphile, The Coding Train, Neso Academy, Gate Smashers, Jenny's Lectures, CrashCourse, Kurzgesagt, Organic Chemistry Tutor, Professor Leonard etc.
+- searchQuery should be specific enough to find the exact topic on YouTube (include the channel name in the query)
+- difficulty must be one of: beginner, intermediate, advanced
+- Order videos from beginner to advanced
+- relatedTopics should be specific, searchable academic subtopics related to "${topic}"`,
+        "You are an educational content curator who knows YouTube educational channels extremely well.",
+        { temperature: 0.5 }
+      ).catch(() => null);
+
+      // Wait for both
+      await explanationPromise;
+      const videoResult = await videoPromise;
+
+      if (videoResult) {
+        setVideos(videoResult.videos || []);
+        setRelatedTopics(videoResult.relatedTopics || []);
+      } else {
+        // Fallback related topics
+        setRelatedTopics([
+          `${topic} examples`,
+          `${topic} applications`,
+          `Advanced ${topic}`,
+        ]);
       }
-
-      // Generate video recommendations (simulated curated list)
-      const mockVideos: VideoRecommendation[] = [
-        {
-          id: crypto.randomUUID(),
-          topic: topic,
-          title: `${topic} - Complete Tutorial`,
-          channel: "Khan Academy",
-          video_id: "dQw4w9WgXcQ",
-          thumbnail_url: `https://img.youtube.com/vi/dQw4w9WgXcQ/mqdefault.jpg`,
-          description: `Learn ${topic} from scratch with clear explanations`,
-          duration: "15:30"
-        },
-        {
-          id: crypto.randomUUID(),
-          topic: topic,
-          title: `${topic} Explained Visually`,
-          channel: "3Blue1Brown",
-          video_id: "aircAruvnKk",
-          thumbnail_url: `https://img.youtube.com/vi/aircAruvnKk/mqdefault.jpg`,
-          description: `Visual intuition for ${topic} concepts`,
-          duration: "18:45"
-        },
-        {
-          id: crypto.randomUUID(),
-          topic: topic,
-          title: `${topic} for Beginners`,
-          channel: "freeCodeCamp",
-          video_id: "rfscVS0vtbw",
-          thumbnail_url: `https://img.youtube.com/vi/rfscVS0vtbw/mqdefault.jpg`,
-          description: `Beginner-friendly introduction to ${topic}`,
-          duration: "22:10"
-        }
-      ];
-      setVideos(mockVideos);
-
-      // Generate related topics
-      setRelatedTopics([
-        `${topic} applications`,
-        `${topic} examples`,
-        `Advanced ${topic}`,
-        `${topic} vs alternatives`,
-        `${topic} best practices`
-      ]);
 
       // Track topic
       if (user) {
@@ -187,44 +149,49 @@ export default function Learn() {
           .maybeSingle();
 
         if (existing) {
-          await supabase
-            .from("studied_topics")
-            .update({ 
-              study_count: existing.study_count + 1,
-              last_studied_at: new Date().toISOString()
-            })
-            .eq("id", existing.id);
+          await supabase.from("studied_topics").update({
+            study_count: existing.study_count + 1,
+            last_studied_at: new Date().toISOString()
+          }).eq("id", existing.id);
         } else {
-          await supabase
-            .from("studied_topics")
-            .insert({ user_id: user.id, topic, source: "learn" });
+          await supabase.from("studied_topics").insert({
+            user_id: user.id, topic, source: "learn"
+          });
         }
       }
-
     } catch (error: any) {
       toast.error(error.message || "Failed to search topic");
     } finally {
       setIsSearching(false);
+      setIsLoadingVideos(false);
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      searchAndLearn();
-    }
+    if (e.key === "Enter") searchAndLearn();
+  };
+
+  const getDifficultyColor = (d: string) => {
+    if (d === "beginner") return "bg-green-500/10 text-green-500 border-green-500/30";
+    if (d === "intermediate") return "bg-amber-500/10 text-amber-500 border-amber-500/30";
+    return "bg-red-500/10 text-red-500 border-red-500/30";
   };
 
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="p-4 border-b border-border">
-        <h1 className="text-xl font-semibold flex items-center gap-2">
-          <BookOpen className="w-5 h-5 text-primary" />
-          Smart Learning
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Search any topic - get AI explanations, videos, and community discussions
-        </p>
+      <div className="p-4 border-b border-border bg-card/30 backdrop-blur-sm">
+        <div className="flex items-center gap-3 mb-1">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-emerald-500 flex items-center justify-center shadow-lg shadow-primary/20">
+            <BookOpen className="w-5 h-5 text-primary-foreground" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold">Smart Learning</h1>
+            <p className="text-sm text-muted-foreground">
+              Search any topic — get AI explanations, videos, and community discussions
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Search */}
@@ -245,19 +212,15 @@ export default function Learn() {
           </Button>
         </div>
 
-        {/* Recent Topics */}
         {recentTopics.length > 0 && !aiExplanation && (
           <div className="flex flex-wrap gap-2 mt-3">
             <span className="text-xs text-muted-foreground">Recent:</span>
             {recentTopics.slice(0, 5).map((topic) => (
-              <Badge 
-                key={topic} 
-                variant="secondary" 
+              <Badge
+                key={topic}
+                variant="secondary"
                 className="cursor-pointer hover:bg-secondary/80"
-                onClick={() => {
-                  setSearchTopic(topic);
-                  searchAndLearn(topic);
-                }}
+                onClick={() => { setSearchTopic(topic); searchAndLearn(topic); }}
               >
                 {topic}
               </Badge>
@@ -287,57 +250,79 @@ export default function Learn() {
               </TabsList>
             </div>
 
+            {/* AI Explanation Tab */}
             <TabsContent value="ai" className="flex-1 overflow-hidden mt-0">
               <ScrollArea className="h-full p-4">
                 {isSearching && !aiExplanation ? (
-                  <div className="flex items-center gap-3 py-8">
-                    <Loader2 className="w-5 h-5 animate-spin text-primary" />
-                    <span className="text-muted-foreground">Getting AI explanation...</span>
+                  <div className="space-y-4 animate-pulse">
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
+                        <Sparkles className="w-5 h-5 text-primary animate-spin" />
+                      </div>
+                      <div>
+                        <p className="font-medium">Generating explanation...</p>
+                        <p className="text-sm text-muted-foreground">AI is analyzing "{searchTopic}"</p>
+                      </div>
+                    </div>
+                    <div className="h-4 bg-muted rounded w-3/4" />
+                    <div className="h-4 bg-muted rounded w-full" />
+                    <div className="h-4 bg-muted rounded w-5/6" />
+                    <div className="h-4 bg-muted rounded w-2/3" />
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    <Card>
-                      <CardHeader className="pb-2">
-                        <CardTitle className="flex items-center gap-2 text-lg">
-                          <Sparkles className="w-5 h-5 text-primary" />
-                          AI Explanation
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="whitespace-pre-wrap leading-relaxed">{aiExplanation}</p>
-                      </CardContent>
-                    </Card>
+                  <div className="space-y-6">
+                    {/* AI Response Card */}
+                    <div className="relative overflow-hidden rounded-xl border border-border bg-card">
+                      {/* Gradient accent bar */}
+                      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-purple-500 to-cyan-500" />
 
+                      <div className="p-5 pt-6">
+                        <div className="flex items-center gap-3 mb-4">
+                          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary to-purple-500 flex items-center justify-center">
+                            <Sparkles className="w-4 h-4 text-white" />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-lg">{searchTopic}</h3>
+                            <p className="text-xs text-muted-foreground">AI-generated explanation</p>
+                          </div>
+                        </div>
+                        <FormattedMessage content={aiExplanation} />
+                      </div>
+                    </div>
+
+                    {/* Related Topics */}
                     {relatedTopics.length > 0 && (
-                      <div>
-                        <h3 className="text-sm font-medium mb-2">Related Topics</h3>
+                      <div className="space-y-3">
+                        <h3 className="text-sm font-semibold flex items-center gap-2">
+                          <GraduationCap className="w-4 h-4 text-primary" />
+                          Continue Learning
+                        </h3>
                         <div className="flex flex-wrap gap-2">
                           {relatedTopics.map((topic) => (
                             <Badge
                               key={topic}
                               variant="outline"
-                              className="cursor-pointer hover:bg-primary/10"
-                              onClick={() => {
-                                setSearchTopic(topic);
-                                searchAndLearn(topic);
-                              }}
+                              className="cursor-pointer hover:bg-primary/10 hover:border-primary/30 transition-colors group"
+                              onClick={() => { setSearchTopic(topic); searchAndLearn(topic); }}
                             >
                               {topic}
+                              <ArrowRight className="w-3 h-3 ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
                             </Badge>
                           ))}
                         </div>
                       </div>
                     )}
 
+                    {/* Quick Actions */}
                     <div className="flex gap-2">
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         onClick={() => navigate(`/quiz?topic=${encodeURIComponent(searchTopic)}`)}
                       >
                         <Brain className="w-4 h-4 mr-2" />
                         Take a Quiz
                       </Button>
-                      <Button 
+                      <Button
                         variant="outline"
                         onClick={() => navigate(`/flashcards?topic=${encodeURIComponent(searchTopic)}`)}
                       >
@@ -350,55 +335,75 @@ export default function Learn() {
               </ScrollArea>
             </TabsContent>
 
+            {/* Videos Tab */}
             <TabsContent value="videos" className="flex-1 overflow-hidden mt-0">
               <ScrollArea className="h-full p-4">
-                <div className="grid gap-4">
-                  <div className="text-sm text-muted-foreground bg-secondary/50 rounded-lg p-3">
-                    <Sparkles className="w-4 h-4 inline mr-2 text-primary" />
-                    AI recommends watching these in order for best understanding
+                <div className="space-y-4">
+                  <div className="text-sm text-muted-foreground bg-secondary/50 rounded-lg p-3 flex items-center gap-2">
+                    <Youtube className="w-4 h-4 text-red-500 flex-shrink-0" />
+                    <span>Curated video recommendations — click to search on YouTube</span>
                   </div>
-                  
-                  {videos.map((video, index) => (
-                    <Card key={video.id} className="overflow-hidden">
-                      <div className="flex">
-                        <div className="relative w-48 flex-shrink-0">
-                          <img
-                            src={video.thumbnail_url}
-                            alt={video.title}
-                            className="w-full h-full object-cover"
-                          />
-                          <div className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-1.5 py-0.5 rounded">
-                            {video.duration}
-                          </div>
-                          <div className="absolute top-2 left-2 bg-primary text-primary-foreground text-xs px-2 py-0.5 rounded-full font-medium">
-                            #{index + 1}
-                          </div>
-                        </div>
-                        <CardContent className="flex-1 p-4">
-                          <h3 className="font-semibold mb-1 line-clamp-2">{video.title}</h3>
-                          <p className="text-sm text-muted-foreground mb-2">{video.channel}</p>
-                          <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
-                            {video.description}
-                          </p>
-                          <Button variant="outline" size="sm" asChild>
-                            <a 
-                              href={`https://www.youtube.com/watch?v=${video.video_id}`} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                            >
-                              <Play className="w-3 h-3 mr-2" />
-                              Watch Video
-                              <ExternalLink className="w-3 h-3 ml-2" />
-                            </a>
-                          </Button>
-                        </CardContent>
-                      </div>
-                    </Card>
-                  ))}
+
+                  {isLoadingVideos && videos.length === 0 ? (
+                    <div className="flex items-center gap-3 py-8 justify-center">
+                      <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                      <span className="text-muted-foreground">Finding the best videos...</span>
+                    </div>
+                  ) : videos.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Youtube className="w-10 h-10 mx-auto mb-3 opacity-50" />
+                      <p>No video recommendations available yet.</p>
+                      <p className="text-sm">Search a topic to get video suggestions.</p>
+                    </div>
+                  ) : (
+                    videos.map((video, index) => (
+                      <a
+                        key={index}
+                        href={`https://www.youtube.com/results?search_query=${encodeURIComponent(video.searchQuery)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block"
+                      >
+                        <Card className="overflow-hidden hover:border-primary/40 transition-all duration-200 hover:shadow-md hover:shadow-primary/5 group cursor-pointer">
+                          <CardContent className="p-4">
+                            <div className="flex items-start gap-4">
+                              {/* Number badge */}
+                              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center flex-shrink-0 text-white font-bold text-sm shadow-lg shadow-red-500/20">
+                                {index + 1}
+                              </div>
+
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-start justify-between gap-2">
+                                  <div>
+                                    <h3 className="font-semibold text-sm group-hover:text-primary transition-colors line-clamp-1">
+                                      {video.title}
+                                    </h3>
+                                    <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1.5">
+                                      <Youtube className="w-3 h-3 text-red-500" />
+                                      {video.channel}
+                                    </p>
+                                  </div>
+                                  <Badge variant="outline" className={`text-[10px] flex-shrink-0 ${getDifficultyColor(video.difficulty)}`}>
+                                    {video.difficulty}
+                                  </Badge>
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-2 line-clamp-1">
+                                  {video.description}
+                                </p>
+                              </div>
+
+                              <ExternalLink className="w-4 h-4 text-muted-foreground/40 group-hover:text-primary transition-colors flex-shrink-0 mt-1" />
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </a>
+                    ))
+                  )}
                 </div>
               </ScrollArea>
             </TabsContent>
 
+            {/* Community Tab */}
             <TabsContent value="community" className="flex-1 overflow-hidden mt-0">
               <div className="h-full flex items-center justify-center p-8">
                 <Card className="max-w-md text-center">
@@ -428,24 +433,21 @@ export default function Learn() {
       {!aiExplanation && !isSearching && (
         <div className="flex-1 flex items-center justify-center p-8">
           <div className="text-center max-w-md">
-            <div className="w-20 h-20 rounded-2xl bg-primary/20 flex items-center justify-center mx-auto mb-6">
+            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/20 to-emerald-500/20 border border-primary/20 flex items-center justify-center mx-auto mb-6">
               <BookOpen className="w-10 h-10 text-primary" />
             </div>
             <h2 className="text-xl font-semibold mb-2">Smart Learning Flow</h2>
             <p className="text-muted-foreground mb-6">
-              Enter any topic to get a complete learning experience: AI explanations, 
+              Enter any topic to get a complete learning experience: AI explanations,
               curated video lectures, and community discussions.
             </p>
             <div className="flex flex-wrap gap-2 justify-center">
               {["Binary Search", "Quick Sort", "Database Normalization", "TCP/IP"].map((topic) => (
-                <Badge 
+                <Badge
                   key={topic}
-                  variant="secondary" 
+                  variant="secondary"
                   className="cursor-pointer hover:bg-secondary/80"
-                  onClick={() => {
-                    setSearchTopic(topic);
-                    searchAndLearn(topic);
-                  }}
+                  onClick={() => { setSearchTopic(topic); searchAndLearn(topic); }}
                 >
                   {topic}
                 </Badge>

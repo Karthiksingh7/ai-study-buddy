@@ -14,7 +14,7 @@ interface Flashcard {
   flipped?: boolean;
 }
 
-const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
+import { generateJSON } from "@/lib/gemini";
 
 export default function Flashcards() {
   const [topic, setTopic] = useState("");
@@ -46,37 +46,26 @@ export default function Flashcards() {
 
     setIsGenerating(true);
     try {
-      const response = await fetch(CHAT_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-        },
-        body: JSON.stringify({
-          messages: [{ role: "user", content: `Create flashcards about: ${topic}` }],
-          type: "flashcard",
-        }),
-      });
+      const prompt = `Create 5 flashcards about: ${topic}
 
-      if (!response.ok) throw new Error("Failed to generate flashcards");
+Return ONLY valid JSON array (no markdown):
+[
+  { "question": "Question text", "answer": "Answer text" }
+]
 
-      const data = await response.json();
-      const content = data.choices?.[0]?.message?.content || "[]";
+Make questions specific and educational. Answers should be concise but complete.`;
 
-      // Parse the JSON response
-      let flashcardsData;
-      try {
-        // Try to extract JSON from the response
-        const jsonMatch = content.match(/\[[\s\S]*\]/);
-        flashcardsData = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
-      } catch {
-        toast.error("Failed to parse flashcards");
-        return;
-      }
+      const flashcardsData = await generateJSON<{ question: string; answer: string }[]>(
+        prompt,
+        "You are an expert educator. Create clear, educational flashcards.",
+        { temperature: 0.7 }
+      );
+
+      const cards_arr = Array.isArray(flashcardsData) ? flashcardsData : (flashcardsData as any).flashcards || [];
 
       // Save to database and update state
       const newCards: Flashcard[] = [];
-      for (const card of flashcardsData) {
+      for (const card of cards_arr) {
         const { data: inserted, error } = await supabase
           .from("flashcards")
           .insert({

@@ -22,10 +22,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      async (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+
+        // Auto-create profile for new users on sign in
+        if (event === 'SIGNED_IN' && session?.user) {
+          // Use setTimeout to avoid potential deadlocks with Supabase client
+          setTimeout(async () => {
+            try {
+              const { data: existingProfile } = await supabase
+                .from('profiles')
+                .select('id')
+                .eq('user_id', session.user.id)
+                .single();
+
+              if (!existingProfile) {
+                const displayName =
+                  session.user.user_metadata?.name ||
+                  session.user.email?.split('@')[0] ||
+                  'User';
+                await supabase.from('profiles').insert({
+                  user_id: session.user.id,
+                  display_name: displayName,
+                });
+              }
+            } catch {
+              // Best-effort profile creation
+              console.warn('Could not auto-create profile');
+            }
+          }, 0);
+        }
       }
     );
 

@@ -8,10 +8,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { 
-  Users, 
-  MessageSquare, 
-  Send, 
+import {
+  Users,
+  MessageSquare,
+  Send,
   ArrowLeft,
   Sparkles,
   Code,
@@ -55,7 +55,7 @@ const iconMap: Record<string, any> = {
   book: BookOpen,
 };
 
-const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
+import { chatWithGemini } from "@/lib/gemini";
 
 export default function Community() {
   const [groups, setGroups] = useState<Group[]>([]);
@@ -155,7 +155,7 @@ export default function Community() {
         },
         async (payload) => {
           const newMsg = payload.new as Message;
-          
+
           // Get user profile
           if (!newMsg.is_ai_response) {
             const { data: profile } = await supabase
@@ -217,53 +217,20 @@ export default function Community() {
     // Check if AI should respond (mention @ai or ask a question)
     if (messageContent.toLowerCase().includes("@ai") || messageContent.endsWith("?")) {
       try {
-        const response = await fetch(CHAT_URL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-          body: JSON.stringify({
-            messages: [{ role: "user", content: messageContent }],
-            type: "community",
-            context: `Group: ${selectedGroup.name} (${selectedGroup.subject}). Topic: ${selectedGroup.description}`,
-          }),
-        });
+        const aiContent = await chatWithGemini(
+          [{ role: "user", content: messageContent }],
+          `You are a helpful AI study assistant in a student discussion group called "${selectedGroup.name}" focused on ${selectedGroup.subject}. Topic: ${selectedGroup.description}. Give concise, helpful answers.`
+        );
 
-        if (response.ok && response.body) {
-          const reader = response.body.getReader();
-          const decoder = new TextDecoder();
-          let aiContent = "";
-
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-
-            const chunk = decoder.decode(value, { stream: true });
-            const lines = chunk.split('\n');
-
-            for (const line of lines) {
-              if (line.startsWith('data: ') && line.trim() !== 'data: [DONE]') {
-                try {
-                  const parsed = JSON.parse(line.slice(6));
-                  const content = parsed.choices?.[0]?.delta?.content;
-                  if (content) aiContent += content;
-                } catch {}
-              }
-            }
-          }
-
-          if (aiContent) {
-            // Insert AI response
-            await supabase
-              .from("discussion_messages")
-              .insert({
-                group_id: selectedGroup.id,
-                user_id: user.id,
-                content: aiContent,
-                is_ai_response: true
-              });
-          }
+        if (aiContent) {
+          await supabase
+            .from("discussion_messages")
+            .insert({
+              group_id: selectedGroup.id,
+              user_id: user.id,
+              content: aiContent,
+              is_ai_response: true
+            });
         }
       } catch (err) {
         console.error("AI response error:", err);
@@ -373,7 +340,7 @@ export default function Community() {
                         </div>
                         <div className={cn(
                           "inline-block p-3 rounded-lg",
-                          msg.is_ai_response 
+                          msg.is_ai_response
                             ? "bg-primary/10 border border-primary/20"
                             : msg.user_id === user?.id
                               ? "bg-primary text-primary-foreground"

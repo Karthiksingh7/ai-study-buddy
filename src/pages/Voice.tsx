@@ -1,9 +1,11 @@
 import { useState, useRef, useEffect } from "react";
 import { Mic, MicOff, Volume2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { FormattedMessage } from "@/components/FormattedMessage";
 import { toast } from "sonner";
-
-const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
+import { chatWithGemini } from "@/lib/gemini";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Voice() {
   const [isListening, setIsListening] = useState(false);
@@ -13,6 +15,7 @@ export default function Voice() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const recognitionRef = useRef<any>(null);
   const synthRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const { user } = useAuth();
 
   useEffect(() => {
     // Check for speech recognition support
@@ -23,7 +26,7 @@ export default function Voice() {
       recognitionRef.current.interimResults = true;
       recognitionRef.current.lang = "en-US";
 
-      recognitionRef.current.onresult = (event) => {
+      recognitionRef.current.onresult = (event: any) => {
         const current = event.resultIndex;
         const result = event.results[current];
         const transcriptText = result[0].transcript;
@@ -36,7 +39,7 @@ export default function Voice() {
         }
       };
 
-      recognitionRef.current.onerror = (event) => {
+      recognitionRef.current.onerror = (event: any) => {
         console.error("Speech recognition error:", event.error);
         setIsListening(false);
         toast.error("Voice recognition error. Please try again.");
@@ -75,60 +78,64 @@ export default function Voice() {
   const handleSendToAI = async (text: string) => {
     setIsProcessing(true);
     try {
-      const res = await fetch(CHAT_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-        },
-        body: JSON.stringify({
-          messages: [{ role: "user", content: text }],
-          type: "chat",
-        }),
-      });
+      const systemPrompt = `You are StudyBuddy Voice Assistant. Give clear, concise answers suitable for being read aloud. Keep responses under 200 words. Use simple language.`;
 
-      if (!res.ok || !res.body) throw new Error("Failed to get response");
+      const result = await chatWithGemini(
+        [{ role: "user", content: text }],
+        systemPrompt,
+        { temperature: 0.7, maxOutputTokens: 1024 }
+      );
 
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let fullResponse = "";
-      let buffer = "";
+      setResponse(result);
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-
-        let newlineIndex: number;
-        while ((newlineIndex = buffer.indexOf("\n")) !== -1) {
-          let line = buffer.slice(0, newlineIndex);
-          buffer = buffer.slice(newlineIndex + 1);
-
-          if (line.endsWith("\r")) line = line.slice(0, -1);
-          if (line.startsWith(":") || line.trim() === "") continue;
-          if (!line.startsWith("data: ")) continue;
-
-          const jsonStr = line.slice(6).trim();
-          if (jsonStr === "[DONE]") break;
-
-          try {
-            const parsed = JSON.parse(jsonStr);
-            const content = parsed.choices?.[0]?.delta?.content;
-            if (content) {
-              fullResponse += content;
-              setResponse(fullResponse);
+      // Save voice interaction to database
+      if (user) {
+        try {
+          // Save user question
+          await supabase.from("chat_messages").insert({
+            user_id: user.id,
+            role: "user",
+            content: text,
+            message_type: "voice",
+          });
+          // Save AI response
+          await supabase.from("chat_messages").insert({
+            user_id: user.id,
+            role: "assistant",
+            content: result,
+            message_type: "voice",
+          });
+          // Track as studied topic
+          const words = text.split(" ");
+          if (words.length >= 2) {
+            const potentialTopic = words.slice(0, 5).join(" ").replace(/[?!.,]/g, "");
+            if (potentialTopic.length > 5) {
+              const { data: existing } = await supabase
+                .from("studied_topics")
+                .select("id, study_count")
+                .eq("user_id", user.id)
+                .eq("topic", potentialTopic)
+                .maybeSingle();
+              if (existing) {
+                await supabase.from("studied_topics").update({
+                  study_count: (existing.study_count || 0) + 1,
+                  last_studied_at: new Date().toISOString()
+                }).eq("id", existing.id);
+              } else {
+                await supabase.from("studied_topics").insert({
+                  user_id: user.id, topic: potentialTopic, source: "voice"
+                });
+              }
             }
-          } catch {
-            buffer = line + "\n" + buffer;
-            break;
           }
+        } catch (dbErr) {
+          console.warn("Could not save voice interaction:", dbErr);
         }
       }
 
       // Speak the response
-      if (fullResponse && "speechSynthesis" in window) {
-        speakResponse(fullResponse);
+      if (result && "speechSynthesis" in window) {
+        speakResponse(result);
       }
     } catch (error: any) {
       toast.error(error.message || "Failed to get AI response");
@@ -139,10 +146,15 @@ export default function Voice() {
 
   const speakResponse = (text: string) => {
     window.speechSynthesis.cancel();
-    synthRef.current = new SpeechSynthesisUtterance(text);
+    // Strip markdown formatting for speech
+    const cleanText = text
+      .replace(/[#*_`~]/g, "")
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+      .replace(/\n+/g, ". ");
+    synthRef.current = new SpeechSynthesisUtterance(cleanText);
     synthRef.current.rate = 0.9;
     synthRef.current.pitch = 1;
-    
+
     synthRef.current.onstart = () => setIsSpeaking(true);
     synthRef.current.onend = () => setIsSpeaking(false);
     synthRef.current.onerror = () => setIsSpeaking(false);
@@ -172,11 +184,10 @@ export default function Voice() {
         <button
           onClick={toggleListening}
           disabled={isProcessing}
-          className={`w-32 h-32 rounded-full flex items-center justify-center transition-all duration-300 ${
-            isListening
-              ? "bg-destructive pulse-record glow-effect"
-              : "bg-primary hover:bg-primary/90"
-          } ${isProcessing ? "opacity-50 cursor-not-allowed" : ""}`}
+          className={`w-32 h-32 rounded-full flex items-center justify-center transition-all duration-300 ${isListening
+            ? "bg-destructive pulse-record glow-effect"
+            : "bg-primary hover:bg-primary/90"
+            } ${isProcessing ? "opacity-50 cursor-not-allowed" : ""}`}
         >
           {isProcessing ? (
             <Loader2 className="w-12 h-12 text-primary-foreground animate-spin" />
@@ -191,8 +202,8 @@ export default function Voice() {
           {isProcessing
             ? "Processing your question..."
             : isListening
-            ? "Listening... Speak now"
-            : "Tap to start speaking"}
+              ? "Listening... Speak now"
+              : "Tap to start speaking"}
         </p>
 
         {/* Transcript */}
@@ -218,7 +229,7 @@ export default function Voice() {
               )}
             </div>
             <div className="glass-card p-4">
-              <p className="whitespace-pre-wrap">{response}</p>
+              <FormattedMessage content={response} />
             </div>
           </div>
         )}
