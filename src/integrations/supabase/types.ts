@@ -229,6 +229,42 @@ export type Database = {
         }
         Relationships: []
       }
+      mock_test_results: {
+        Row: {
+          ai_evaluation: Json | null
+          answers: Json
+          created_at: string
+          id: string
+          max_score: number
+          test_id: string
+          time_taken_seconds: number
+          total_score: number
+          user_id: string
+        }
+        Insert: {
+          ai_evaluation?: Json | null
+          answers?: Json
+          created_at?: string
+          id?: string
+          max_score?: number
+          test_id: string
+          time_taken_seconds?: number
+          total_score?: number
+          user_id: string
+        }
+        Update: {
+          ai_evaluation?: Json | null
+          answers?: Json
+          created_at?: string
+          id?: string
+          max_score?: number
+          test_id?: string
+          time_taken_seconds?: number
+          total_score?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
