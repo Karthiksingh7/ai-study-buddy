@@ -750,10 +750,10 @@ Rules:
         // Save to database
         if (user) {
             try {
-                await (supabase.from("mock_test_results" as any) as any).insert({
+                await supabase.from("mock_test_results").insert({
                     test_id: activeTest.id,
                     user_id: user.id,
-                    answers: userAnswers,
+                    answers: userAnswers as any,
                     total_score: result.totalScore,
                     max_score: result.maxScore,
                     time_taken_seconds: timeTaken,
