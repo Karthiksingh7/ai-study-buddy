@@ -131,11 +131,11 @@ const Dashboard = () => {
     const firstName = user?.user_metadata?.full_name?.split(" ")[0] || "Student";
 
     return (
-        <div className="min-h-screen bg-[#FAFAF9] -m-4 md:-m-6 lg:-m-8">
+        <div className="min-h-screen bg-[#F6F9FF] -m-4 md:-m-6 lg:-m-8">
             {/* HERO with animated wave background */}
             <section className="relative overflow-hidden">
                 {/* Soft gradient base */}
-                <div className="absolute inset-0 bg-gradient-to-b from-indigo-50/60 via-white to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-b from-blue-50 via-sky-50/40 to-transparent" />
 
                 {/* Animated SVG wave */}
                 <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -146,13 +146,13 @@ const Dashboard = () => {
                     >
                         <defs>
                             <linearGradient id="waveGrad1" x1="0" x2="1" y1="0" y2="0">
-                                <stop offset="0%" stopColor="#c7d2fe" />
-                                <stop offset="50%" stopColor="#ddd6fe" />
-                                <stop offset="100%" stopColor="#bae6fd" />
+                                <stop offset="0%" stopColor="#bfdbfe" />
+                                <stop offset="50%" stopColor="#a5b4fc" />
+                                <stop offset="100%" stopColor="#7dd3fc" />
                             </linearGradient>
                             <linearGradient id="waveGrad2" x1="0" x2="1" y1="0" y2="0">
-                                <stop offset="0%" stopColor="#a5b4fc" />
-                                <stop offset="100%" stopColor="#c4b5fd" />
+                                <stop offset="0%" stopColor="#93c5fd" />
+                                <stop offset="100%" stopColor="#818cf8" />
                             </linearGradient>
                         </defs>
                         <path
@@ -170,7 +170,7 @@ const Dashboard = () => {
                 <div className="relative max-w-6xl mx-auto px-6 md:px-10 pt-14 pb-20 md:pt-20 md:pb-28">
                     <div className="grid md:grid-cols-[1fr_auto] items-center gap-10">
                         <div>
-                            <p className="text-sm font-medium text-indigo-600 mb-3 tracking-wide">
+                            <p className="text-sm font-medium text-blue-600 mb-3 tracking-wide">
                                 YOUR LEARNING SPACE
                             </p>
                             <h1 className="text-4xl md:text-5xl font-bold text-gray-900 leading-tight">
@@ -219,7 +219,7 @@ const Dashboard = () => {
             <div className="max-w-6xl mx-auto px-6 md:px-10 pb-24 -mt-10">
                 {/* Section heading */}
                 <div className="mb-6">
-                    <h2 className="text-xl font-bold text-gray-900 border-l-4 border-indigo-500 pl-3">
+                    <h2 className="text-xl font-bold text-gray-900 border-l-4 border-blue-500 pl-3">
                         Jump back in
                     </h2>
                     <p className="text-sm text-gray-500 mt-1 pl-4">
@@ -236,20 +236,22 @@ const Dashboard = () => {
                             <button
                                 key={card.id}
                                 onClick={() => navigate(card.path)}
+                                style={{
+                                    perspective: "900px",
+                                    transitionDelay: mounted ? `${i * 100}ms` : "0ms",
+                                }}
                                 className={cn(
-                                    "group text-left bg-white border border-gray-100 rounded-2xl p-6",
-                                    "shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-all duration-300",
-                                    "hover:-translate-y-2 hover:border-gray-200",
+                                    "tilt-card group text-left bg-white border border-gray-100 rounded-2xl p-6",
+                                    "shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-all duration-500 ease-out",
+                                    "hover:border-blue-100",
                                     tint.glow,
                                     mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"
                                 )}
-                                style={{
-                                    transitionDelay: mounted ? `${i * 100}ms` : "0ms",
-                                }}
                             >
+                                <div className="tilt-inner transition-transform duration-500 ease-out">
                                 <div
                                     className={cn(
-                                        "w-12 h-12 rounded-xl flex items-center justify-center ring-1 mb-5",
+                                        "tilt-icon w-12 h-12 rounded-xl flex items-center justify-center ring-1 mb-5 transition-transform duration-500 ease-out",
                                         tint.bg,
                                         tint.ring
                                     )}
@@ -262,6 +264,7 @@ const Dashboard = () => {
                                 <p className="text-sm text-gray-500 leading-relaxed">
                                     {card.description}
                                 </p>
+                                </div>
                             </button>
                         );
                     })}
@@ -270,7 +273,7 @@ const Dashboard = () => {
                 {/* Recent Activity */}
                 <div>
                     <div className="flex items-center justify-between mb-5">
-                        <h2 className="text-xl font-bold text-gray-900 border-l-4 border-indigo-500 pl-3">
+                        <h2 className="text-xl font-bold text-gray-900 border-l-4 border-blue-500 pl-3">
                             Recent Activity
                         </h2>
                         <div className="flex items-center gap-1.5 text-xs text-gray-400">
