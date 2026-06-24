@@ -19,7 +19,7 @@ const SHORTCUTS = [
         description: "Chat with your AI tutor anytime",
         icon: BookOpen,
         path: "/chat",
-        tint: "indigo",
+        tint: "blue",
     },
     {
         id: "quiz",
@@ -27,7 +27,7 @@ const SHORTCUTS = [
         description: "Test your knowledge with AI quizzes",
         icon: Brain,
         path: "/quiz",
-        tint: "violet",
+        tint: "sky",
     },
     {
         id: "doc",
@@ -35,7 +35,7 @@ const SHORTCUTS = [
         description: "Summarize and analyze your PDFs",
         icon: FileText,
         path: "/documents",
-        tint: "emerald",
+        tint: "cyan",
     },
     {
         id: "code",
@@ -43,41 +43,41 @@ const SHORTCUTS = [
         description: "Sharpen your skills with problems",
         icon: Code2,
         path: "/coding",
-        tint: "amber",
+        tint: "indigo",
     },
 ] as const;
 
 const TINTS: Record<string, { bg: string; text: string; ring: string; glow: string }> = {
+    blue: {
+        bg: "bg-blue-50",
+        text: "text-blue-600",
+        ring: "ring-blue-100",
+        glow: "group-hover:shadow-[0_25px_50px_-12px_rgba(37,99,235,0.45)]",
+    },
+    sky: {
+        bg: "bg-sky-50",
+        text: "text-sky-600",
+        ring: "ring-sky-100",
+        glow: "group-hover:shadow-[0_25px_50px_-12px_rgba(14,165,233,0.45)]",
+    },
+    cyan: {
+        bg: "bg-cyan-50",
+        text: "text-cyan-600",
+        ring: "ring-cyan-100",
+        glow: "group-hover:shadow-[0_25px_50px_-12px_rgba(6,182,212,0.45)]",
+    },
     indigo: {
         bg: "bg-indigo-50",
         text: "text-indigo-600",
         ring: "ring-indigo-100",
-        glow: "group-hover:shadow-[0_18px_40px_-12px_rgba(99,102,241,0.35)]",
-    },
-    violet: {
-        bg: "bg-violet-50",
-        text: "text-violet-600",
-        ring: "ring-violet-100",
-        glow: "group-hover:shadow-[0_18px_40px_-12px_rgba(139,92,246,0.35)]",
-    },
-    emerald: {
-        bg: "bg-emerald-50",
-        text: "text-emerald-600",
-        ring: "ring-emerald-100",
-        glow: "group-hover:shadow-[0_18px_40px_-12px_rgba(16,185,129,0.35)]",
-    },
-    amber: {
-        bg: "bg-amber-50",
-        text: "text-amber-600",
-        ring: "ring-amber-100",
-        glow: "group-hover:shadow-[0_18px_40px_-12px_rgba(245,158,11,0.35)]",
+        glow: "group-hover:shadow-[0_25px_50px_-12px_rgba(99,102,241,0.45)]",
     },
 };
 
 const TAG_STYLE: Record<Activity["type"], string> = {
-    Quiz: "bg-violet-50 text-violet-700",
-    Document: "bg-emerald-50 text-emerald-700",
-    Chat: "bg-indigo-50 text-indigo-700",
+    Quiz: "bg-sky-50 text-sky-700",
+    Document: "bg-cyan-50 text-cyan-700",
+    Chat: "bg-blue-50 text-blue-700",
 };
 
 const TAG_ICON: Record<Activity["type"], typeof Brain> = {
