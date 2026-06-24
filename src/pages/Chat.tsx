@@ -163,8 +163,8 @@ export default function Chat() {
     if (!user) return;
 
     // Get distinct conversations from chat_messages
-    const { data } = await supabase
-      .from("chat_messages")
+    const { data } = await (supabase
+      .from("chat_messages" as any) as any)
       .select("conversation_id, content, role, created_at")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
@@ -221,8 +221,8 @@ export default function Chat() {
     setCurrentConversationId(conversationId);
 
     if (user) {
-      const { data, error } = await supabase
-        .from("chat_messages")
+      const { data, error } = await (supabase
+        .from("chat_messages" as any) as any)
         .select("*")
         .eq("user_id", user.id)
         .eq("conversation_id", conversationId)
@@ -262,8 +262,8 @@ export default function Chat() {
 
     // Delete from DB if logged in
     if (user) {
-      await supabase
-        .from("chat_messages")
+      await (supabase
+        .from("chat_messages" as any) as any)
         .delete()
         .eq("user_id", user.id)
         .eq("conversation_id", conversationId);
@@ -317,7 +317,7 @@ export default function Chat() {
     // Also save to Supabase if logged in
     if (user) {
       try {
-        await supabase.from("chat_messages").insert({
+        await (supabase.from("chat_messages" as any) as any).insert({
           user_id: user.id,
           role,
           content,
