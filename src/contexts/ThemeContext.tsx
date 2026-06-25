@@ -50,27 +50,30 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         // Extract hue from primary for coordinated colors
         const hue = parseInt(theme.primary.split(" ")[0]);
 
-        // BACKGROUND - Subtle colored tint, NOT pure white!
-        root.style.setProperty("--background", `${hue} 25% 97%`);
-        root.style.setProperty("--card", `${hue} 20% 99%`);
-        root.style.setProperty("--popover", `${hue} 20% 99%`);
+        // LIGHT BACKGROUNDS — Clean White Theme
+        root.style.setProperty("--background", `${hue} 20% 99%`);
+        root.style.setProperty("--foreground", `${hue} 40% 10%`);
+        root.style.setProperty("--card", `${hue} 30% 97%`);
+        root.style.setProperty("--card-foreground", `${hue} 40% 10%`);
+        root.style.setProperty("--popover", `${hue} 30% 97%`);
+        root.style.setProperty("--popover-foreground", `${hue} 40% 10%`);
 
-        // Secondary colors with theme tint
-        root.style.setProperty("--secondary", `${hue} 25% 94%`);
-        root.style.setProperty("--secondary-foreground", `${hue} 30% 25%`);
-        root.style.setProperty("--muted", `${hue} 20% 92%`);
-        root.style.setProperty("--muted-foreground", `${hue} 15% 45%`);
-        root.style.setProperty("--border", `${hue} 25% 88%`);
-        root.style.setProperty("--input", `${hue} 25% 90%`);
+        // Secondary colors — light variants
+        root.style.setProperty("--secondary", `${hue} 25% 93%`);
+        root.style.setProperty("--secondary-foreground", `${hue} 30% 15%`);
+        root.style.setProperty("--muted", `${hue} 20% 95%`);
+        root.style.setProperty("--muted-foreground", `${hue} 15% 42%`);
+        root.style.setProperty("--border", `${hue} 20% 88%`);
+        root.style.setProperty("--input", `${hue} 20% 90%`);
 
-        // Sidebar colors
-        root.style.setProperty("--sidebar-background", `${hue} 20% 97%`);
-        root.style.setProperty("--sidebar-foreground", `${hue} 25% 20%`);
+        // Sidebar colors — light glass
+        root.style.setProperty("--sidebar-background", `${hue} 25% 97%`);
+        root.style.setProperty("--sidebar-foreground", `${hue} 40% 15%`);
         root.style.setProperty("--sidebar-primary", theme.primary);
         root.style.setProperty("--sidebar-ring", theme.primary);
-        root.style.setProperty("--sidebar-accent", `${hue} 25% 93%`);
-        root.style.setProperty("--sidebar-accent-foreground", `${hue} 25% 20%`);
-        root.style.setProperty("--sidebar-border", `${hue} 25% 88%`);
+        root.style.setProperty("--sidebar-accent", `${hue} 30% 93%`);
+        root.style.setProperty("--sidebar-accent-foreground", `${hue} 40% 15%`);
+        root.style.setProperty("--sidebar-border", `${hue} 18% 90%`);
 
         localStorage.setItem("gradient-index", index.toString());
     }, []);

@@ -64,8 +64,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     });
 
+    // Timeout fallback: if auth is still loading after 3 seconds, proceed as guest
+    const timeout = setTimeout(() => {
+      setLoading(false);
+    }, 3000);
+
     return () => {
       subscription.unsubscribe();
+      clearTimeout(timeout);
     };
   }, []);
 

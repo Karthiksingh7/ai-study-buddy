@@ -156,12 +156,12 @@ export function AppSidebar() {
   return (
     <aside
       className={cn(
-        "h-screen bg-sidebar border-r border-sidebar-border flex flex-col transition-all duration-200",
+        "h-screen backdrop-blur-xl bg-white/80 border-r border-border flex flex-col transition-all duration-200 relative z-20",
         collapsed ? "w-[72px]" : "w-64"
       )}
     >
       {/* Header */}
-      <div className="p-4 flex items-center justify-between border-b border-sidebar-border">
+      <div className="p-4 flex items-center justify-between border-b border-border">
         {!collapsed && (
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-md bg-primary flex items-center justify-center">
@@ -228,7 +228,7 @@ export function AppSidebar() {
       </ScrollArea>
 
       {/* Footer */}
-      <div className="p-3 border-t border-sidebar-border">
+      <div className="p-3 border-t border-border">
         <button
           onClick={user ? handleLogout : () => navigate('/auth')}
           className={cn(

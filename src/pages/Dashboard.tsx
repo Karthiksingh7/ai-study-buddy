@@ -200,6 +200,23 @@ const Dashboard = () => {
         root.style.setProperty("--accent", theme.end);
         root.style.setProperty("--sidebar-primary", theme.primary);
         root.style.setProperty("--sidebar-ring", theme.primary);
+
+        // Light theme coordinated colors
+        const hue = parseInt(theme.primary.split(" ")[0]);
+        root.style.setProperty("--background", `${hue} 20% 99%`);
+        root.style.setProperty("--foreground", `${hue} 40% 10%`);
+        root.style.setProperty("--card", `${hue} 30% 97%`);
+        root.style.setProperty("--card-foreground", `${hue} 40% 10%`);
+        root.style.setProperty("--secondary", `${hue} 25% 93%`);
+        root.style.setProperty("--muted", `${hue} 20% 95%`);
+        root.style.setProperty("--muted-foreground", `${hue} 15% 42%`);
+        root.style.setProperty("--border", `${hue} 20% 88%`);
+        root.style.setProperty("--input", `${hue} 20% 90%`);
+        root.style.setProperty("--sidebar-background", `${hue} 25% 97%`);
+        root.style.setProperty("--sidebar-foreground", `${hue} 40% 15%`);
+        root.style.setProperty("--sidebar-accent", `${hue} 30% 93%`);
+        root.style.setProperty("--sidebar-accent-foreground", `${hue} 40% 15%`);
+        root.style.setProperty("--sidebar-border", `${hue} 18% 90%`);
     };
 
     const randomGradient = () => {
@@ -252,14 +269,14 @@ const Dashboard = () => {
                                     {greeting}
                                 </p>
                                 <h1 className="text-2xl md:text-3xl font-bold text-foreground">
-                                    Welcome back, <span className="text-primary">{firstName}</span>
+                                    Welcome back, <span className="heading-gradient">{firstName}</span>
                                 </h1>
                             </div>
                         </div>
 
                         {/* Status Widget */}
                         <div className="glass-card p-4 flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
+                            <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
                                 <Activity className="w-5 h-5 text-green-600" />
                             </div>
                             <div>
@@ -361,7 +378,7 @@ const Dashboard = () => {
                         <LayoutGrid className="w-5 h-5 text-primary" />
                     </div>
                     <div>
-                        <h2 className="text-lg font-semibold text-foreground">All Features</h2>
+                        <h2 className="text-lg font-semibold heading-gradient">All Features</h2>
                         <p className="text-sm text-muted-foreground">16 AI-powered tools</p>
                     </div>
                 </div>
@@ -377,7 +394,7 @@ const Dashboard = () => {
                     <div
                         key={feature.id}
                         className={cn(
-                            "feature-card cursor-pointer group",
+                            "feature-card-3d relative cursor-pointer group",
                             mounted ? "opacity-100" : "opacity-0"
                         )}
                         style={{ transitionDelay: `${50 + i * 20}ms`, transitionDuration: "200ms" }}
