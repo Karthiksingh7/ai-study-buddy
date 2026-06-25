@@ -1,183 +1,102 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-    MessageCircle, BookOpen, Sparkles, GraduationCap, Brain, FileText,
-    Code2, Mic, Camera, Calendar, BarChart3, Users, Gamepad2, Clock,
-    ClipboardList, ArrowRight, Flame, Target, Trophy,
-    ChevronRight, Star, Rocket, Wand2, Activity, LayoutGrid
-} from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { BookOpen, Brain, FileText, Code2, MessageCircle, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// Dashboard features
-const FEATURES = [
+type Activity = {
+    id: string;
+    title: string;
+    type: "Quiz" | "Document" | "Chat";
+    date: string;
+};
+
+const SHORTCUTS = [
     {
-        id: "chat",
-        title: "AI Chat",
-        description: "24/7 AI tutoring and instant explanations",
-        icon: MessageCircle,
-        path: "/chat",
-        color: "bg-indigo-500",
-        category: "Core"
-    },
-    {
-        id: "learn",
-        title: "Smart Learning",
-        description: "Adaptive learning paths tailored to you",
+        id: "study",
+        title: "Start Studying",
+        description: "Chat with your AI tutor anytime",
         icon: BookOpen,
-        path: "/learn",
-        color: "bg-blue-500",
-        category: "Core"
-    },
-    {
-        id: "study-planner",
-        title: "Study Planner",
-        description: "AI-optimized study schedules",
-        icon: Calendar,
-        path: "/study-planner",
-        color: "bg-rose-500",
-        category: "Productivity",
-        isNew: true
-    },
-    {
-        id: "analytics",
-        title: "Analytics",
-        description: "Track your learning progress",
-        icon: BarChart3,
-        path: "/analytics",
-        color: "bg-amber-500",
-        category: "Insights",
-        isNew: true
-    },
-    {
-        id: "voice",
-        title: "Voice Buddy",
-        description: "Hands-free AI assistant",
-        icon: Mic,
-        path: "/voice",
-        color: "bg-red-500",
-        category: "Core"
-    },
-    {
-        id: "scan",
-        title: "Smart Scan",
-        description: "Capture and explain images",
-        icon: Camera,
-        path: "/scan",
-        color: "bg-teal-500",
-        category: "Tools"
+        path: "/chat",
+        tint: "blue",
     },
     {
         id: "quiz",
-        title: "AI Quiz",
-        description: "Adaptive quizzes for mastery",
+        title: "Take a Quiz",
+        description: "Test your knowledge with AI quizzes",
         icon: Brain,
         path: "/quiz",
-        color: "bg-violet-500",
-        category: "Assessment"
+        tint: "sky",
     },
     {
-        id: "mock-tests",
-        title: "Mock Tests",
-        description: "Full-length practice exams",
-        icon: ClipboardList,
-        path: "/mock-tests",
-        color: "bg-orange-500",
-        category: "Assessment",
-        isNew: true
-    },
-    {
-        id: "coding",
-        title: "Coding Practice",
-        description: "LeetCode-style problems with AI",
-        icon: Code2,
-        path: "/coding",
-        color: "bg-emerald-500",
-        category: "Practice",
-        isNew: true
-    },
-    {
-        id: "flashcards",
-        title: "Flashcards",
-        description: "AI-generated study cards",
-        icon: Sparkles,
-        path: "/flashcards",
-        color: "bg-cyan-500",
-        category: "Tools"
-    },
-    {
-        id: "documents",
-        title: "Documents",
-        description: "PDF analysis and notes",
+        id: "doc",
+        title: "Upload Document",
+        description: "Summarize and analyze your PDFs",
         icon: FileText,
         path: "/documents",
-        color: "bg-blue-600",
-        category: "Tools",
-        isNew: true
+        tint: "cyan",
     },
     {
-        id: "syllabus",
-        title: "Syllabus",
-        description: "Track curriculum progress",
-        icon: GraduationCap,
-        path: "/syllabus",
-        color: "bg-fuchsia-500",
-        category: "Productivity",
-        isNew: true
+        id: "code",
+        title: "Coding Practice",
+        description: "Sharpen your skills with problems",
+        icon: Code2,
+        path: "/coding",
+        tint: "indigo",
     },
-    {
-        id: "community",
-        title: "Community",
-        description: "Connect with study groups",
-        icon: Users,
-        path: "/community",
-        color: "bg-sky-500",
-        category: "Social"
-    },
-    {
-        id: "classrooms",
-        title: "Classrooms",
-        description: "Virtual learning spaces",
-        icon: Users,
-        path: "/classrooms",
-        color: "bg-lime-500",
-        category: "Social",
-        isNew: true
-    },
-    {
-        id: "games",
-        title: "Smart Break",
-        description: "Brain training games",
-        icon: Gamepad2,
-        path: "/games",
-        color: "bg-yellow-500",
-        category: "Fun"
-    },
-    {
-        id: "sessions",
-        title: "Sessions",
-        description: "Study session tracking",
-        icon: Clock,
-        path: "/sessions",
-        color: "bg-slate-500",
-        category: "Productivity"
-    }
-];
+] as const;
 
-// Quick actions
-const QUICK_ACTIONS = [
-    { title: "New Chat", icon: MessageCircle, path: "/chat", color: "bg-indigo-500" },
-    { title: "Quick Quiz", icon: Brain, path: "/quiz", color: "bg-violet-500" },
-    { title: "Upload Doc", icon: FileText, path: "/documents", color: "bg-blue-500" },
-    { title: "Voice AI", icon: Mic, path: "/voice", color: "bg-rose-500" }
+const TINTS: Record<string, { bg: string; text: string; ring: string; glow: string }> = {
+    blue: {
+        bg: "bg-blue-50",
+        text: "text-blue-600",
+        ring: "ring-blue-100",
+        glow: "group-hover:shadow-[0_25px_50px_-12px_rgba(37,99,235,0.45)]",
+    },
+    sky: {
+        bg: "bg-sky-50",
+        text: "text-sky-600",
+        ring: "ring-sky-100",
+        glow: "group-hover:shadow-[0_25px_50px_-12px_rgba(14,165,233,0.45)]",
+    },
+    cyan: {
+        bg: "bg-cyan-50",
+        text: "text-cyan-600",
+        ring: "ring-cyan-100",
+        glow: "group-hover:shadow-[0_25px_50px_-12px_rgba(6,182,212,0.45)]",
+    },
+    indigo: {
+        bg: "bg-indigo-50",
+        text: "text-indigo-600",
+        ring: "ring-indigo-100",
+        glow: "group-hover:shadow-[0_25px_50px_-12px_rgba(99,102,241,0.45)]",
+    },
+};
+
+const TAG_STYLE: Record<Activity["type"], string> = {
+    Quiz: "bg-sky-50 text-sky-700",
+    Document: "bg-cyan-50 text-cyan-700",
+    Chat: "bg-blue-50 text-blue-700",
+};
+
+const TAG_ICON: Record<Activity["type"], typeof Brain> = {
+    Quiz: Brain,
+    Document: FileText,
+    Chat: MessageCircle,
+};
+
+const PLACEHOLDER_ACTIVITY: Activity[] = [
+    { id: "p1", title: "Data Structures Review", type: "Chat", date: "Today" },
+    { id: "p2", title: "Calculus Practice Quiz", type: "Quiz", date: "Yesterday" },
+    { id: "p3", title: "Machine Learning Notes", type: "Document", date: "2 days ago" },
 ];
 
 const Dashboard = () => {
     const navigate = useNavigate();
     const { user } = useAuth();
     const [mounted, setMounted] = useState(false);
+<<<<<<< HEAD
 
     // Gradient color palettes - Beautiful combinations
     const GRADIENT_THEMES = [
@@ -234,23 +153,44 @@ const Dashboard = () => {
         randomGradient();
         navigate(path);
     };
+=======
+    const [activity, setActivity] = useState<Activity[]>(PLACEHOLDER_ACTIVITY);
+>>>>>>> 449052d4e34fb18a822db100e9afa6a9045e21f4
 
     useEffect(() => {
         setMounted(true);
-        // Apply saved or random gradient on mount
-        const savedIndex = parseInt(localStorage.getItem("gradient-index") || "-1", 10);
-        if (savedIndex >= 0 && savedIndex < GRADIENT_THEMES.length) {
-            applyGradientTheme(GRADIENT_THEMES[savedIndex]);
-        } else {
-            randomGradient();
-        }
     }, []);
 
+    useEffect(() => {
+        if (!user) return;
+        (async () => {
+            try {
+                const { data } = await supabase
+                    .from("chat_messages" as any)
+                    .select("id, message, created_at")
+                    .eq("user_id", user.id)
+                    .order("created_at", { ascending: false })
+                    .limit(3);
+                if (data && Array.isArray(data) && data.length > 0) {
+                    setActivity(
+                        data.map((row: any) => ({
+                            id: row.id,
+                            title: (row.message || "Study session").slice(0, 60),
+                            type: "Chat" as const,
+                            date: new Date(row.created_at).toLocaleDateString(),
+                        }))
+                    );
+                }
+            } catch {
+                /* keep placeholder */
+            }
+        })();
+    }, [user]);
+
     const firstName = user?.user_metadata?.full_name?.split(" ")[0] || "Student";
-    const currentHour = new Date().getHours();
-    const greeting = currentHour < 12 ? "Good morning" : currentHour < 18 ? "Good afternoon" : "Good evening";
 
     return (
+<<<<<<< HEAD
         <div className="min-h-screen pb-20">
             {/* Header Section */}
             <div className={cn(
@@ -307,53 +247,68 @@ const Dashboard = () => {
                             </div>
                         ))}
                     </div>
+=======
+        <div className="min-h-screen bg-[#F6F9FF] -m-4 md:-m-6 lg:-m-8">
+            {/* HERO with animated wave background */}
+            <section className="relative overflow-hidden">
+                {/* Soft gradient base */}
+                <div className="absolute inset-0 bg-gradient-to-b from-blue-50 via-sky-50/40 to-transparent" />
+
+                {/* Animated SVG wave */}
+                <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                    <svg
+                        className="absolute -top-10 left-0 w-[200%] h-full opacity-60 animate-[wave-shift_12s_ease-in-out_infinite]"
+                        viewBox="0 0 1440 400"
+                        preserveAspectRatio="none"
+                    >
+                        <defs>
+                            <linearGradient id="waveGrad1" x1="0" x2="1" y1="0" y2="0">
+                                <stop offset="0%" stopColor="#bfdbfe" />
+                                <stop offset="50%" stopColor="#a5b4fc" />
+                                <stop offset="100%" stopColor="#7dd3fc" />
+                            </linearGradient>
+                            <linearGradient id="waveGrad2" x1="0" x2="1" y1="0" y2="0">
+                                <stop offset="0%" stopColor="#93c5fd" />
+                                <stop offset="100%" stopColor="#818cf8" />
+                            </linearGradient>
+                        </defs>
+                        <path
+                            d="M0,200 C240,120 480,280 720,200 C960,120 1200,280 1440,200 L1440,400 L0,400 Z"
+                            fill="url(#waveGrad1)"
+                        />
+                        <path
+                            d="M0,260 C240,180 480,320 720,260 C960,200 1200,320 1440,260 L1440,400 L0,400 Z"
+                            fill="url(#waveGrad2)"
+                            opacity="0.5"
+                        />
+                    </svg>
+>>>>>>> 449052d4e34fb18a822db100e9afa6a9045e21f4
                 </div>
 
-                {/* Quick Actions */}
-                <div className="flex flex-wrap gap-2">
-                    {QUICK_ACTIONS.map((action, i) => (
-                        <Button
-                            key={i}
-                            onClick={() => navigate(action.path)}
-                            variant="outline"
-                            size="sm"
-                            className="gap-2 text-foreground hover:bg-primary/5 hover:border-primary/30"
-                        >
-                            <div className={cn("w-5 h-5 rounded flex items-center justify-center", action.color)}>
-                                <action.icon className="w-3 h-3 text-white" />
-                            </div>
-                            {action.title}
-                        </Button>
-                    ))}
-                </div>
-            </div>
-
-            {/* AI Suggestion Card */}
-            <div className={cn(
-                "glass-card p-5 mb-8 transition-opacity duration-200",
-                mounted ? "opacity-100" : "opacity-0"
-            )}>
-                <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-lg bg-primary flex items-center justify-center shrink-0">
-                        <Wand2 className="w-6 h-6 text-white" />
-                    </div>
-                    <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1.5">
-                            <h3 className="font-semibold text-foreground">AI Suggestion</h3>
-                            <Badge variant="outline" className="text-xs">
-                                Personalized
-                            </Badge>
+                <div className="relative max-w-6xl mx-auto px-6 md:px-10 pt-14 pb-20 md:pt-20 md:pb-28">
+                    <div className="grid md:grid-cols-[1fr_auto] items-center gap-10">
+                        <div>
+                            <p className="text-sm font-medium text-blue-600 mb-3 tracking-wide">
+                                YOUR LEARNING SPACE
+                            </p>
+                            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 leading-tight">
+                                Welcome back, {firstName} <span className="inline-block">👋</span>
+                            </h1>
+                            <p className="mt-4 text-lg text-gray-500 max-w-xl">
+                                Ready to learn something amazing today?
+                            </p>
                         </div>
-                        <p className="text-muted-foreground text-sm mb-4">
-                            Based on your recent activity, reviewing <strong className="text-foreground">Data Structures</strong> would
-                            boost your quiz performance.
-                        </p>
-                        <div className="flex gap-3">
-                            <Button
-                                size="sm"
-                                onClick={() => navigate("/quiz")}
-                                className="gap-2"
+
+                        {/* 3D Floating study objects */}
+                        <div
+                            className="relative h-44 w-64 hidden md:block"
+                            style={{ perspective: "500px" }}
+                        >
+                            <div
+                                className="absolute left-2 top-6 text-6xl drop-shadow-[0_12px_18px_rgba(99,102,241,0.25)] animate-[float_3s_ease-in-out_infinite]"
+                                style={{ transform: "perspective(500px) rotateX(10deg) rotateY(-8deg)" }}
                             >
+<<<<<<< HEAD
                                 Start Practice <ArrowRight className="w-4 h-4" />
                             </Button>
                             <Button
@@ -404,52 +359,132 @@ const Dashboard = () => {
                         <div className="flex items-start justify-between mb-3">
                             <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center", feature.color)}>
                                 <feature.icon className="w-5 h-5 text-white" />
+=======
+                                📖
                             </div>
-
-                            {feature.isNew && (
-                                <Badge variant="outline" className="text-xs">
-                                    NEW
-                                </Badge>
-                            )}
+                            <div
+                                className="absolute right-6 top-0 text-5xl drop-shadow-[0_12px_18px_rgba(245,158,11,0.3)] animate-[float_3s_ease-in-out_infinite]"
+                                style={{
+                                    transform: "perspective(500px) rotateX(10deg) rotateY(8deg)",
+                                    animationDelay: "0.5s",
+                                }}
+                            >
+                                ✏️
+                            </div>
+                            <div
+                                className="absolute right-0 bottom-2 text-6xl drop-shadow-[0_12px_18px_rgba(250,204,21,0.4)] animate-[float_3s_ease-in-out_infinite]"
+                                style={{
+                                    transform: "perspective(500px) rotateX(10deg) rotateY(4deg)",
+                                    animationDelay: "1s",
+                                }}
+                            >
+                                💡
+>>>>>>> 449052d4e34fb18a822db100e9afa6a9045e21f4
+                            </div>
                         </div>
+                    </div>
+                </div>
+            </section>
 
-                        {/* Content */}
-                        <h3 className="font-medium text-foreground mb-1 group-hover:text-primary transition-colors">
-                            {feature.title}
-                        </h3>
-                        <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                            {feature.description}
-                        </p>
+            {/* MAIN CONTENT */}
+            <div className="max-w-6xl mx-auto px-6 md:px-10 pb-24 -mt-10">
+                {/* Section heading */}
+                <div className="mb-6">
+                    <h2 className="text-xl font-bold text-gray-900 border-l-4 border-blue-500 pl-3">
+                        Jump back in
+                    </h2>
+                    <p className="text-sm text-gray-500 mt-1 pl-4">
+                        Pick a tool and keep your momentum going.
+                    </p>
+                </div>
 
-                        {/* Footer */}
-                        <div className="flex items-center justify-between">
-                            <span className="text-xs text-muted-foreground">{feature.category}</span>
-                            <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                {/* Shortcut cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-14">
+                    {SHORTCUTS.map((card, i) => {
+                        const tint = TINTS[card.tint];
+                        const Icon = card.icon;
+                        return (
+                            <button
+                                key={card.id}
+                                onClick={() => navigate(card.path)}
+                                style={{
+                                    perspective: "900px",
+                                    transitionDelay: mounted ? `${i * 100}ms` : "0ms",
+                                }}
+                                className={cn(
+                                    "tilt-card group text-left bg-white border border-gray-100 rounded-2xl p-6",
+                                    "shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-all duration-500 ease-out",
+                                    "hover:border-blue-100",
+                                    tint.glow,
+                                    mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"
+                                )}
+                            >
+                                <div className="tilt-inner transition-transform duration-500 ease-out">
+                                <div
+                                    className={cn(
+                                        "tilt-icon w-12 h-12 rounded-xl flex items-center justify-center ring-1 mb-5 transition-transform duration-500 ease-out",
+                                        tint.bg,
+                                        tint.ring
+                                    )}
+                                >
+                                    <Icon className={cn("w-6 h-6", tint.text)} />
+                                </div>
+                                <h3 className="font-semibold text-gray-900 text-base mb-1.5">
+                                    {card.title}
+                                </h3>
+                                <p className="text-sm text-gray-500 leading-relaxed">
+                                    {card.description}
+                                </p>
+                                </div>
+                            </button>
+                        );
+                    })}
+                </div>
+
+                {/* Recent Activity */}
+                <div>
+                    <div className="flex items-center justify-between mb-5">
+                        <h2 className="text-xl font-bold text-gray-900 border-l-4 border-blue-500 pl-3">
+                            Recent Activity
+                        </h2>
+                        <div className="flex items-center gap-1.5 text-xs text-gray-400">
+                            <Sparkles className="w-3.5 h-3.5" />
+                            Last 3 sessions
                         </div>
                     </div>
-                ))}
-            </div>
 
-            {/* Bottom CTA */}
-            <div className={cn(
-                "mt-10 text-center transition-opacity duration-200",
-                mounted ? "opacity-100" : "opacity-0"
-            )}>
-                <div className="glass-card inline-flex items-center gap-4 p-4 px-6">
-                    <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-                        <Rocket className="w-5 h-5 text-white" />
+                    <div className="bg-white border border-gray-100 rounded-2xl shadow-[0_1px_2px_rgba(0,0,0,0.04)] overflow-hidden">
+                        {activity.map((item, i) => {
+                            const TagIcon = TAG_ICON[item.type];
+                            return (
+                                <div
+                                    key={item.id}
+                                    className={cn(
+                                        "flex items-center gap-4 px-6 py-5 transition-colors hover:bg-gray-50/60",
+                                        i !== activity.length - 1 && "border-b border-gray-100"
+                                    )}
+                                >
+                                    <div className="w-10 h-10 rounded-lg bg-gray-50 flex items-center justify-center shrink-0">
+                                        <TagIcon className="w-5 h-5 text-gray-500" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="font-medium text-gray-900 truncate">
+                                            {item.title}
+                                        </p>
+                                        <p className="text-xs text-gray-400 mt-0.5">{item.date}</p>
+                                    </div>
+                                    <span
+                                        className={cn(
+                                            "text-xs font-medium px-2.5 py-1 rounded-full",
+                                            TAG_STYLE[item.type]
+                                        )}
+                                    >
+                                        {item.type}
+                                    </span>
+                                </div>
+                            );
+                        })}
                     </div>
-                    <div className="text-left">
-                        <p className="text-foreground font-medium">Need help getting started?</p>
-                        <p className="text-sm text-muted-foreground">Ask your AI tutor anything</p>
-                    </div>
-                    <Button
-                        onClick={() => navigate("/chat")}
-                        className="ml-2 gap-2"
-                        size="sm"
-                    >
-                        Start Chat <ArrowRight className="w-4 h-4" />
-                    </Button>
                 </div>
             </div>
         </div>

@@ -92,6 +92,7 @@ export default {
           from: { opacity: "0", transform: "translateX(-10px)" },
           to: { opacity: "1", transform: "translateX(0)" },
         },
+<<<<<<< HEAD
         "float": {
           "0%, 100%": { transform: "translateY(0px)" },
           "50%": { transform: "translateY(-15px)" },
@@ -110,6 +111,15 @@ export default {
           "0%": { backgroundPosition: "0% 50%" },
           "50%": { backgroundPosition: "100% 50%" },
           "100%": { backgroundPosition: "0% 50%" },
+=======
+        float: {
+          "0%, 100%": { transform: "perspective(500px) rotateX(10deg) translateY(0px)" },
+          "50%": { transform: "perspective(500px) rotateX(10deg) translateY(-12px)" },
+        },
+        "wave-shift": {
+          "0%, 100%": { transform: "translateX(0)" },
+          "50%": { transform: "translateX(-25%)" },
+>>>>>>> 449052d4e34fb18a822db100e9afa6a9045e21f4
         },
       },
       animation: {
@@ -117,9 +127,14 @@ export default {
         "accordion-up": "accordion-up 0.2s ease-out",
         "fade-in": "fade-in 0.3s ease-out",
         "slide-in": "slide-in 0.3s ease-out",
+<<<<<<< HEAD
         "float": "float 3s ease-in-out infinite",
         "glow-pulse": "glow-pulse 2s ease-in-out infinite",
         "gradient-shift": "gradient-shift 8s ease infinite",
+=======
+        float: "float 3s ease-in-out infinite",
+        "wave-shift": "wave-shift 12s ease-in-out infinite",
+>>>>>>> 449052d4e34fb18a822db100e9afa6a9045e21f4
       },
     },
   },

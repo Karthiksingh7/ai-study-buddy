@@ -537,3 +537,17 @@
     font-weight: 500;
   }
 }
+/* Dashboard 3D tilt hover */
+.tilt-card {
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+.tilt-card:hover {
+  transform: translateY(-6px) rotateX(6deg) rotateY(-6deg) scale(1.02);
+}
+.tilt-card:hover .tilt-icon {
+  transform: translateZ(30px) rotateX(-4deg) scale(1.08);
+}
+.tilt-card .tilt-inner {
+  transform-style: preserve-3d;
+}
